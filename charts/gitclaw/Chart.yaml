@@ -4,7 +4,7 @@ description: >
   GitClaw — agent-first self-hosted Git service (Gitea fork, MIT).
   Minimal single-pod chart for bp-001 Ops Foundation smoke.
 type: application
-version: 0.1.5
+version: 0.1.6
 appVersion: "1.22.0"
 maintainers:
   - name: Scalytics Platform Team

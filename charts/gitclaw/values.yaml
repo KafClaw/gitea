@@ -74,5 +74,24 @@ serviceAccount:
   create: true
   name: ""
 
+# Prometheus metrics + ServiceMonitor (PLAN-06 iter-7 E-12 / G-007).
+#
+# Gitea ships a `/metrics` endpoint on its main HTTP port; it needs to
+# be enabled via GITEA__metrics__ENABLED=true. The ServiceMonitor here
+# is gated by `metrics.enabled` (default false) so default installs
+# don't depend on the Prometheus Operator CRDs being present.
+metrics:
+  enabled: false
+  path: "/metrics"
+  # Gitea serves /metrics on the main HTTP port (3000). No separate
+  # metrics-only port is exposed by the upstream image.
+  port: 3000
+  serviceMonitor:
+    # The Prometheus Operator's "release" selector usually wants the
+    # `release: <prom-name>` label. Operators set this per-cluster.
+    labels: {}
+    interval: 30s
+    scrapeTimeout: 10s
+
 labels:
   app.kubernetes.io/part-of: ops-foundation

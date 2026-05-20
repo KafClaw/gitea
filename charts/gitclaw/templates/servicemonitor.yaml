@@ -1,0 +1,32 @@
+{{- /*
+  servicemonitor.yaml — Prometheus Operator ServiceMonitor for gitclaw.
+
+  Gated by `.Values.metrics.enabled` (default false). Requires the
+  monitoring.coreos.com/v1 CRD to be installed in-cluster (Prometheus
+  Operator). Operators turn this on once the cluster has the CRD by
+  setting `--set metrics.enabled=true` plus the relevant selector
+  labels on .Values.metrics.serviceMonitor.labels.
+
+  PLAN-06 iter-7 E-12 / G-007.
+*/}}
+{{- if .Values.metrics.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "gitclaw.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "gitclaw.labels" . | nindent 4 }}
+    {{- with .Values.metrics.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "gitclaw.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http
+      path: {{ .Values.metrics.path | quote }}
+      interval: {{ .Values.metrics.serviceMonitor.interval | quote }}
+      scrapeTimeout: {{ .Values.metrics.serviceMonitor.scrapeTimeout | quote }}
+{{- end }}
