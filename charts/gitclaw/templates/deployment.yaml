@@ -50,8 +50,13 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
+            # /data is the VOLUME declared in the upstream Gitea image
+            # (Dockerfile: ENV GITEA_CUSTOM=/data/gitea; VOLUME ["/data"]).
+            # s6-init mkdir's /data/gitea, /data/git, /data/ssh on first
+            # boot, so the PVC must mount at /data, not /var/lib/gitea.
+            # PLAN-06 iter-6 follow-up (run-7 smoke).
             - name: data
-              mountPath: /var/lib/gitea
+              mountPath: /data
             - name: config
               mountPath: /etc/gitea
       volumes:

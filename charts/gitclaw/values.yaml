@@ -12,10 +12,12 @@ service:
   targetHttpPort: 3000
   sshPort: 2222
 
-# Minimal embedded SQLite + local storage — dev only.
+# Minimal embedded SQLite + local storage, dev only.
+# dbPath must live under /data (the VOLUME mount) so it survives pod
+# restart; the upstream image's GITEA_CUSTOM is /data/gitea.
 config:
   dbType: "sqlite3"
-  dbPath: "/var/lib/gitea/data/gitea.db"
+  dbPath: "/data/gitea/gitea.db"
   appName: "GitClaw"
   rootUrl: "http://localhost:3001/"
 
@@ -46,7 +48,8 @@ probes:
 # /etc/s6/.s6-svscan/lock; it then drops to UID 1000 via s6-setuidgid
 # for the actual gitea process. Pinning runAsUser at the chart level
 # breaks the init sequence with `unable to open .s6-svscan/lock:
-# Permission denied` (PLAN-01 P27, observed 2026-05-19).
+# Permission denied` (PLAN-01 P27, observed 2026-05-19; re-confirmed
+# in run-7 of PLAN-06 release-verify).
 #
 # Consequence: GitClaw cannot be deployed into a namespace labelled
 # `pod-security.kubernetes.io/enforce: restricted`. Operators who
@@ -55,12 +58,12 @@ probes:
 #   (b) replace the Gitea image with a non-s6 variant, or
 #   (c) disable the chart (gitclaw.enabled: false).
 #
-# fsGroup chowns the data volume to gid 1000 (the `git` user inside
-# the Gitea image) so the PVC mount is writable by the dropped UID.
+# We DO NOT pin runAsUser/runAsGroup here, the image starts as root
+# under s6 and drops to its internal `git` user (uid 1000, gid 1000)
+# via s6-setuidgid. fsGroup chowns the PVC mount to gid 1000 so the
+# dropped user can write to /data.
 podSecurityContext:
   fsGroup: 1000
-  runAsUser: 1000
-  runAsGroup: 1000
 
 # Container-level: explicit empty block so consumers can override.
 # The main gitclaw container starts as root (s6 requirement) and drops
