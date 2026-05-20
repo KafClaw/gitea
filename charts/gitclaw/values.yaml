@@ -38,10 +38,34 @@ probes:
     initialDelaySeconds: 10
     periodSeconds: 10
 
+# Pod security (PLAN-06 E-04 / audit F-4).
+#
+# DOCUMENTED EXCEPTION TO PSA-RESTRICTED. GitClaw wraps the upstream
+# Gitea image, which uses s6-svscan to manage child processes. s6
+# requires its supervisor to start as UID 0 to open the directory at
+# /etc/s6/.s6-svscan/lock; it then drops to UID 1000 via s6-setuidgid
+# for the actual gitea process. Pinning runAsUser at the chart level
+# breaks the init sequence with `unable to open .s6-svscan/lock:
+# Permission denied` (PLAN-01 P27, observed 2026-05-19).
+#
+# Consequence: GitClaw cannot be deployed into a namespace labelled
+# `pod-security.kubernetes.io/enforce: restricted`. Operators who
+# need PSA-restricted compliance must either:
+#   (a) deploy GitClaw into a separate namespace at PSA `baseline`,
+#   (b) replace the Gitea image with a non-s6 variant, or
+#   (c) disable the chart (gitclaw.enabled: false).
+#
+# fsGroup chowns the data volume to gid 1000 (the `git` user inside
+# the Gitea image) so the PVC mount is writable by the dropped UID.
 podSecurityContext:
   fsGroup: 1000
   runAsUser: 1000
   runAsGroup: 1000
+
+# Container-level: explicit empty block so consumers can override.
+# The main gitclaw container starts as root (s6 requirement) and drops
+# inside the image. capabilities.drop ALL would block s6-setuidgid.
+containerSecurityContext: {}
 
 serviceAccount:
   create: true
