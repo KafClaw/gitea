@@ -1,0 +1,28 @@
+{{- if .Values.persistence.enabled }}
+# pvc.yaml — PLAN-01 P27 + iter-6 PR re-add.
+#
+# The deployment.yaml mounts /data at .Values.persistence.enabled
+# but ships no PVC manifest of its own. Without this template the
+# chart references a PVC that nothing creates, the pod stays
+# Pending with "persistentvolumeclaim not found", and helm upgrade
+# times out waiting for the pod to become Ready.
+#
+# Re-added on iter-6/E-03-E-04-combined to keep `helm install
+# gitclaw` self-contained.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "gitclaw.fullname" . }}-data
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "gitclaw.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size | quote }}
+  {{- if .Values.persistence.storageClass }}
+  storageClassName: {{ .Values.persistence.storageClass | quote }}
+  {{- end }}
+{{- end }}
